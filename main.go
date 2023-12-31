@@ -24,11 +24,11 @@ import (
 type arrayFlags []string
 
 var (
-	customHeaders                   arrayFlags
-	sleepTime, thread, maxLength    int
-	headlessP, headlessC, crawlMode bool
-	inputUrls, outputFile           string
-	wg                              sync.WaitGroup
+	customHeaders                          arrayFlags
+	sleepTime, thread, maxLength, maxDepth int
+	headlessP, headlessC, crawlMode        bool
+	inputUrls, outputFile                  string
+	wg                                     sync.WaitGroup
 )
 
 const (
@@ -37,7 +37,7 @@ const (
 	colorGreen  = "\033[32m"
 	colorYellow = "\033[33m"
 	colorBlue   = "\033[34m"
-	VERSION     = "1.0.1"
+	VERSION     = "1.0.2"
 )
 
 func (i *arrayFlags) Set(value string) error {
@@ -64,6 +64,7 @@ func main() {
 
 	createGroup(flagSet, "configs", "Configurations",
 		flagSet.BoolVarP(&crawlMode, "crawl", "c", false, "Crawl pages to extract their parameters"),
+		flagSet.IntVarP(&maxDepth, "depth", "d", 2, "maximum depth to crawl"),
 		flagSet.BoolVarP(&headlessC, "headless-crawl", "hc", false, "Enable headless hybrid crawling (experimental)"),
 		flagSet.BoolVarP(&headlessP, "headless-parameter", "hp", false, "Discover parameters with headless browser"),
 		flagSet.VarP(&customHeaders, "header", "H", "Header `\"Name: Value\"`, separated by colon. Multiple -H flags are accepted."),
@@ -85,7 +86,7 @@ func main() {
 	allUrls := readInput(inputUrls)
 	if crawlMode {
 		for _, v := range allUrls {
-			allUrls = append(allUrls, simpleCrawl(v, sleepTime, headlessC)...)
+			allUrls = append(allUrls, simpleCrawl(v, sleepTime, headlessC, maxDepth)...)
 		}
 	}
 
@@ -119,10 +120,10 @@ func IsUrl(str string) bool {
 	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
-func simpleCrawl(link string, delay int, headlessMode bool) []string {
+func simpleCrawl(link string, delay int, headlessMode bool, maxDepth int) []string {
 	var allLinks []string
 	options := &types.Options{
-		MaxDepth:               2, // Maximum depth to crawl
+		MaxDepth:               maxDepth, // Maximum depth to crawl
 		ScrapeJSResponses:      true,
 		ScrapeJSLuiceResponses: false,
 		CrawlDuration:          0,
