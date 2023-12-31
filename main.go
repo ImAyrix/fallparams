@@ -31,6 +31,15 @@ var (
 	wg                              sync.WaitGroup
 )
 
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorBlue   = "\033[34m"
+	VERSION     = "1.0.1"
+)
+
 func (i *arrayFlags) Set(value string) error {
 	*i = append(*i, value)
 	return nil
@@ -65,6 +74,8 @@ func main() {
 		flagSet.IntVarP(&maxLength, "max-length", "l", 30, "Maximum length of words"),
 	)
 	_ = flagSet.Parse()
+	checkUpdate()
+
 	if inputUrls == "" {
 		gologger.Error().Msg("Input is empty!\n")
 		gologger.Info().Msg("Use -h flag for help.\n\n")
@@ -379,6 +390,29 @@ func createGroup(flagSet *goflags.FlagSet, groupName, description string, flags 
 	for _, currentFlag := range flags {
 		currentFlag.Group(groupName)
 	}
+}
+
+func checkUpdate() {
+	// Check Updates
+	resp, err := http.Get("https://github.com/ImAyrix/fallparams")
+	checkError(err)
+
+	respByte, err := io.ReadAll(resp.Body)
+	checkError(err)
+	body := string(respByte)
+
+	re, e := regexp.Compile(`fallparams\s+v(\d\.\d\.\d+)`)
+	checkError(e)
+
+	if re.FindStringSubmatch(body)[1] != VERSION {
+		gologger.Print().Msg("")
+		gologger.Print().Msg("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+		gologger.Print().Msg(fmt.Sprintf("|    %v🔥  Please update Fallparams!%v                                      |", colorGreen, colorReset))
+		gologger.Print().Msg("|    💣  Run: go install github.com/ImAyrix/fallparams@latest           |")
+		gologger.Print().Msg("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
+		gologger.Print().Msg("")
+	}
+
 }
 
 func checkError(e error) {
