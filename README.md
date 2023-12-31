@@ -39,6 +39,7 @@ RATE-LIMIT:
 
 CONFIGURATIONS:
    -c, -crawl                 Crawl pages to extract their parameters
+   -d, -depth int             maximum depth to crawl (default 2)
    -hc, -headless-crawl       Enable headless hybrid crawling (experimental)
    -hp, -headless-parameter   Discover parameters with headless browser
    -H, -header "Name: Value"  Header "Name: Value", separated by colon. Multiple -H flags are accepted.
