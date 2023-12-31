@@ -25,7 +25,7 @@ type arrayFlags []string
 
 var (
 	customHeaders                   arrayFlags
-	sleepTime, thread               int
+	sleepTime, thread, maxLength    int
 	headlessP, headlessC, crawlMode bool
 	inputUrls, outputFile           string
 	wg                              sync.WaitGroup
@@ -62,6 +62,7 @@ func main() {
 
 	createGroup(flagSet, "output", "Output",
 		flagSet.StringVarP(&outputFile, "output", "o", "parameters.txt", "File to write output to"),
+		flagSet.IntVarP(&maxLength, "max-length", "l", 30, "Maximum length of words"),
 	)
 	_ = flagSet.Parse()
 	if inputUrls == "" {
@@ -360,12 +361,14 @@ func showResult(channel chan string) {
 	defer wg.Done()
 	for v := range channel {
 		for _, i := range unique(findParameter(v)) {
-			file, err := os.OpenFile(outputFile, os.O_APPEND|os.O_WRONLY, 0666)
-			checkError(err)
-			_, err = fmt.Fprintln(file, i)
-			checkError(err)
-			err = file.Close()
-			checkError(err)
+			if len(i) <= maxLength {
+				file, err := os.OpenFile(outputFile, os.O_APPEND|os.O_WRONLY, 0666)
+				checkError(err)
+				_, err = fmt.Fprintln(file, i)
+				checkError(err)
+				err = file.Close()
+				checkError(err)
+			}
 		}
 	}
 }
