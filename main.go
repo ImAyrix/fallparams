@@ -37,7 +37,7 @@ const (
 	colorGreen  = "\033[32m"
 	colorYellow = "\033[33m"
 	colorBlue   = "\033[34m"
-	VERSION     = "1.0.2"
+	VERSION     = "1.0.3"
 )
 
 func (i *arrayFlags) Set(value string) error {
@@ -91,6 +91,7 @@ func main() {
 	}
 
 	_, _ = os.Create(outputFile)
+	allUrls = clearUrls(allUrls)
 	allUrls = unique(allUrls)
 
 	channel := make(chan string, len(allUrls))
@@ -101,9 +102,11 @@ func main() {
 
 	for i := 0; i < thread; i++ {
 		wg.Add(1)
-		go showResult(channel)
+		go saveResult(channel)
 	}
 	wg.Wait()
+	gologger.Info().Msg(fmt.Sprintf("Parameter wordlist %ssuccessfully%s generated and saved to %s%s%s.",
+		colorGreen, colorReset, colorBlue, outputFile, colorReset))
 }
 
 func readInput(input string) []string {
@@ -364,13 +367,15 @@ func unique(strSlice []string) []string {
 	for _, entry := range strSlice {
 		if _, value := keys[entry]; !value {
 			keys[entry] = true
-			list = append(list, entry)
+			if entry != "" {
+				list = append(list, entry)
+			}
 		}
 	}
 	return list
 }
 
-func showResult(channel chan string) {
+func saveResult(channel chan string) {
 	defer wg.Done()
 	for v := range channel {
 		for _, i := range unique(findParameter(v)) {
@@ -414,6 +419,30 @@ func checkUpdate() {
 		gologger.Print().Msg("")
 	}
 
+}
+
+func clearUrls(links []string) []string {
+	badExtensions := []string{
+		".css", ".jpg", ".jpeg", ".png", ".svg", ".img", ".gif", ".exe", ".mp4", ".flv", ".pdf", ".doc", ".ogv", ".webm", ".wmv",
+		".webp", ".mov", ".mp3", ".m4a", ".m4p", ".ppt", ".pptx", ".scss", ".tif", ".tiff", ".ttf", ".otf", ".woff", ".woff2", ".bmp",
+		".ico", ".eot", ".htc", ".swf", ".rtf", ".image", ".rf"}
+	var result []string
+
+	for _, link := range links {
+		isGoodUrl := true
+		u, _ := url.Parse(link)
+
+		for _, ext := range badExtensions {
+			if strings.HasSuffix(strings.ToLower(u.Path), ext) {
+				isGoodUrl = false
+			}
+		}
+
+		if isGoodUrl {
+			result = append(result, link)
+		}
+	}
+	return result
 }
 
 func checkError(e error) {
