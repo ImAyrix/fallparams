@@ -1,6 +1,6 @@
 module github.com/ImAyrix/fallparams
 
-go 1.21.1
+go 1.20
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20231205062650-00455a960d61

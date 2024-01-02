@@ -37,7 +37,7 @@ const (
 	colorGreen  = "\033[32m"
 	colorYellow = "\033[33m"
 	colorBlue   = "\033[34m"
-	VERSION     = "1.0.3"
+	VERSION     = "1.0.4"
 )
 
 func (i *arrayFlags) Set(value string) error {
