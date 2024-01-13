@@ -37,7 +37,7 @@ const (
 	colorGreen  = "\033[32m"
 	colorYellow = "\033[33m"
 	colorBlue   = "\033[34m"
-	VERSION     = "1.0.4"
+	VERSION     = "1.0.5"
 )
 
 func (i *arrayFlags) Set(value string) error {
@@ -105,8 +105,8 @@ func main() {
 		go saveResult(channel)
 	}
 	wg.Wait()
-	gologger.Info().Msg(fmt.Sprintf("Parameter wordlist %ssuccessfully%s generated and saved to %s%s%s.",
-		colorGreen, colorReset, colorBlue, outputFile, colorReset))
+
+	finalMessage()
 }
 
 func readInput(input string) []string {
@@ -170,7 +170,7 @@ func simpleCrawl(link string, delay int, headlessMode bool, maxDepth int) []stri
 	if err != nil {
 		gologger.Warning().Msgf("Could not crawl %s: %s", link, err.Error())
 	}
-	defer gologger.Info().Msg(fmt.Sprintf("%d endpoints were found by crawling\n\n", len(allLinks)))
+	defer gologger.Info().Msg(fmt.Sprintf("%d endpoints were found by crawling\n\n", len(allLinks)-1))
 	return allLinks
 }
 
@@ -183,7 +183,6 @@ func sendRequest(link string) (*http.Response, string) {
 	if err != nil {
 		return nil, "temp"
 	}
-
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	req.Header.Set("Sec-Fetch-Dest", "document")
@@ -198,13 +197,12 @@ func sendRequest(link string) (*http.Response, string) {
 		}
 	}
 	res, err := client.Do(req)
-	checkError(err)
 	var resByte []byte
-	if err == nil {
+	if err == nil && res != nil {
 		resByte, err = io.ReadAll(res.Body)
 		checkError(err)
 	} else {
-		return nil, "temp"
+		return &http.Response{}, "temp"
 	}
 	if sleepTime != 0 {
 		time.Sleep(time.Duration(int32(sleepTime)) * time.Second)
@@ -252,13 +250,12 @@ func headlessBrowser(link string) string {
 
 	// Navigate to the URL and retrieve the page DOM
 	var htmlContent string
-	err = chromedp.Run(ctx,
+	_ = chromedp.Run(ctx,
 		chromedp.Navigate(link),
 		chromedp.WaitReady("body"),
 		chromedp.OuterHTML("html", &htmlContent),
 	)
 
-	checkError(err)
 	return htmlContent
 }
 
@@ -445,9 +442,19 @@ func clearUrls(links []string) []string {
 	return result
 }
 
+func finalMessage() {
+	dat, _ := os.ReadFile(outputFile)
+	if len(string(dat)) != 0 {
+		gologger.Info().Msg(fmt.Sprintf("Parameter wordlist %ssuccessfully%s generated and saved to %s%s%s.",
+			colorGreen, colorReset, colorBlue, outputFile, colorReset))
+	} else {
+		_ = os.Remove(outputFile)
+		gologger.Error().Msg("I'm sorry, but I couldn't find any parameters :(")
+	}
+}
+
 func checkError(e error) {
 	if e != nil {
 		fmt.Println(e.Error())
-
 	}
 }
