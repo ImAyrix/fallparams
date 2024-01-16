@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -27,7 +28,7 @@ var (
 	customHeaders                          arrayFlags
 	sleepTime, thread, maxLength, maxDepth int
 	headlessP, headlessC, crawlMode        bool
-	inputUrls, outputFile                  string
+	inputUrls, outputFile, filesDIR        string
 	wg                                     sync.WaitGroup
 )
 
@@ -37,7 +38,7 @@ const (
 	colorGreen  = "\033[32m"
 	colorYellow = "\033[33m"
 	colorBlue   = "\033[34m"
-	VERSION     = "1.0.5"
+	VERSION     = "1.0.6"
 )
 
 func (i *arrayFlags) Set(value string) error {
@@ -55,6 +56,7 @@ func main() {
 
 	createGroup(flagSet, "input", "Input",
 		flagSet.StringVarP(&inputUrls, "url", "u", "", "Input [Filename | URL]"),
+		flagSet.StringVarP(&filesDIR, "files", "f", "", "Stored requests/responses files directory path (offline)"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -77,25 +79,31 @@ func main() {
 	_ = flagSet.Parse()
 	checkUpdate()
 
-	if inputUrls == "" {
+	if inputUrls == "" && filesDIR == "" {
 		gologger.Error().Msg("Input is empty!\n")
 		gologger.Info().Msg("Use -h flag for help.\n\n")
 		os.Exit(1)
 	}
 
-	allUrls := readInput(inputUrls)
-	if crawlMode {
-		for _, v := range allUrls {
-			allUrls = append(allUrls, simpleCrawl(v, sleepTime, headlessC, maxDepth)...)
+	var userInput []string
+	if inputUrls != "" {
+		allUrls := readInput(inputUrls)
+		if crawlMode {
+			for _, v := range allUrls {
+				allUrls = append(allUrls, simpleCrawl(v, sleepTime, headlessC, maxDepth)...)
+			}
 		}
+
+		allUrls = clearUrls(allUrls)
+		allUrls = unique(allUrls)
+		userInput = allUrls
+	} else if filesDIR != "" {
+		userInput = readDir(filesDIR)
 	}
-
 	_, _ = os.Create(outputFile)
-	allUrls = clearUrls(allUrls)
-	allUrls = unique(allUrls)
 
-	channel := make(chan string, len(allUrls))
-	for _, myLink := range allUrls {
+	channel := make(chan string, len(userInput))
+	for _, myLink := range userInput {
 		channel <- myLink
 	}
 	close(channel)
@@ -106,7 +114,7 @@ func main() {
 	}
 	wg.Wait()
 
-	finalMessage()
+	defer finalMessage()
 }
 
 func readInput(input string) []string {
@@ -274,77 +282,102 @@ func myRegex(myRegex string, response string, indexes []int) []string {
 	return finalResult
 }
 
-func findParameter(link string) []string {
-	var allParameter []string
+func startDiscovery(myInput string) []string {
 	var result []string
-	if IsUrl(link) {
-		gologger.Info().Msg("Started parameter discovery for => " + link + "\n")
+	if IsUrl(myInput) {
+		gologger.Info().Msg("Started parameter discovery for => " + myInput + "\n")
 		body := ""
 		httpRes := &http.Response{}
 		if !headlessP {
-			httpRes, body = sendRequest(link)
+			httpRes, body = sendRequest(myInput)
 		} else {
-			body = headlessBrowser(link)
+			body = headlessBrowser(myInput)
 		}
 		cnHeader := strings.ToLower(httpRes.Header.Get("Content-Type"))
 
-		// Get parameter from url
-		linkParameter := queryStringKey(link)
-		allParameter = append(allParameter, linkParameter...)
+		result = findParameters(myInput, body, cnHeader)
+	} else if len(myInput) != 0 {
+		cnHeader := "NOT-FOUND"
+		link := ""
+		fileName := strings.Split(myInput, "====")[0]
+		myInput = strings.Split(myInput, "====")[1]
+		reg, _ := regexp.Compile(`[cC][oO][nN][tT][eE][nN][tT]-[tT][yY][pP][eE]\s*:\s*([\w\-/]+)`)
 
-		// Variable Name
-		variableNamesRegex := myRegex(`(let|const|var)\s([\w\,\s]+)\s*?(\n|\r|;|=)`, body, []int{2})
-		var variableNames []string
-		for _, v := range variableNamesRegex {
-			for _, j := range strings.Split(v, ",") {
-				variableNames = append(variableNames, strings.Replace(j, " ", "", -1))
-			}
-		}
-		allParameter = append(allParameter, variableNames...)
-
-		// Json and Object keys
-		jsonObjectKey := myRegex(`["|']([\w\-]+)["|']\s*?:`, body, []int{1})
-		allParameter = append(allParameter, jsonObjectKey...)
-
-		// String format variable
-		stringFormat := myRegex(`\${(\s*[\w\-]+)\s*}`, body, []int{1})
-		allParameter = append(allParameter, stringFormat...)
-
-		// Function input
-		funcInput := myRegex(`.*\(\s*["|']?([\w\-]+)["|']?\s*(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?\)`,
-			body, []int{1, 3, 5, 7, 9, 11, 13, 15, 17, 19})
-		allParameter = append(allParameter, funcInput...)
-
-		// Path Input
-		pathInput := myRegex(`\/\{(.*)\}`, body, []int{1})
-		allParameter = append(allParameter, pathInput...)
-
-		// Query string key in source
-		queryString := myRegex(`(\?([\w\-]+)=)|(\&([\w\-]+)=)`, body, []int{2, 4})
-		allParameter = append(allParameter, queryString...)
-
-		if cnHeader != "application/javascript" {
-			// Name HTML attribute
-			inputName := myRegex(`name\s*?=\s*?["|']([\w\-]+)["|']`, body, []int{1})
-			allParameter = append(allParameter, inputName...)
-
-			// ID HTML attribute
-			htmlID := myRegex(`id\s*=\s*["|']([\w\-]+)["|']`, body, []int{1})
-			allParameter = append(allParameter, htmlID...)
+		if IsUrl(strings.Split(myInput, "\n")[0]) {
+			link = strings.Split(myInput, "\n")[0]
+		} else {
+			link = fileName
 		}
 
-		// XML attributes
-		if strings.Contains(cnHeader, "xml") {
-			xmlAtr := myRegex(`<([a-zA-Z0-9$_\.-]*?)>`, body, []int{1})
-			allParameter = append(allParameter, xmlAtr...)
+		if len(reg.FindStringSubmatch(myInput)) != 0 {
+			cnHeader = strings.ToLower(reg.FindStringSubmatch(myInput)[1])
 		}
+		gologger.Info().Msg("Started parameter discovery for => " + link + "\n")
+		result = findParameters(link, myInput, cnHeader)
+
+	}
+	defer gologger.Info().Msg(fmt.Sprintf("%d parameters were found\n\n", len(result)))
+	return result
+}
+
+func findParameters(link string, body string, cnHeader string) []string {
+	var allParameter []string
+	var result []string
+	// Get parameter from url
+	linkParameter := queryStringKey(link)
+	allParameter = append(allParameter, linkParameter...)
+
+	// Variable Name
+	variableNamesRegex := myRegex(`(let|const|var)\s([\w\,\s]+)\s*?(\n|\r|;|=)`, body, []int{2})
+	var variableNames []string
+	for _, v := range variableNamesRegex {
+		for _, j := range strings.Split(v, ",") {
+			variableNames = append(variableNames, strings.Replace(j, " ", "", -1))
+		}
+	}
+	allParameter = append(allParameter, variableNames...)
+
+	// Json and Object keys
+	jsonObjectKey := myRegex(`["|']([\w\-]+)["|']\s*?:`, body, []int{1})
+	allParameter = append(allParameter, jsonObjectKey...)
+
+	// String format variable
+	stringFormat := myRegex(`\${(\s*[\w\-]+)\s*}`, body, []int{1})
+	allParameter = append(allParameter, stringFormat...)
+
+	// Function input
+	funcInput := myRegex(`.*\(\s*["|']?([\w\-]+)["|']?\s*(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?(\,\s*["|']?([\w\-]+)["|']?\s*)?\)`,
+		body, []int{1, 3, 5, 7, 9, 11, 13, 15, 17, 19})
+	allParameter = append(allParameter, funcInput...)
+
+	// Path Input
+	pathInput := myRegex(`\/\{(.*)\}`, body, []int{1})
+	allParameter = append(allParameter, pathInput...)
+
+	// Query string key in source
+	queryString := myRegex(`(\?([\w\-]+)=)|(\&([\w\-]+)=)`, body, []int{2, 4})
+	allParameter = append(allParameter, queryString...)
+
+	if cnHeader != "application/javascript" {
+		// Name HTML attribute
+		inputName := myRegex(`name\s*?=\s*?["|']([\w\-]+)["|']`, body, []int{1})
+		allParameter = append(allParameter, inputName...)
+
+		// ID HTML attribute
+		htmlID := myRegex(`id\s*=\s*["|']([\w\-]+)["|']`, body, []int{1})
+		allParameter = append(allParameter, htmlID...)
+	}
+
+	// XML attributes
+	if strings.Contains(cnHeader, "xml") {
+		xmlAtr := myRegex(`<([a-zA-Z0-9$_\.-]*?)>`, body, []int{1})
+		allParameter = append(allParameter, xmlAtr...)
 	}
 	for _, v := range allParameter {
 		if v != "" {
 			result = append(result, v)
 		}
 	}
-	defer gologger.Info().Msg(fmt.Sprintf("%d parameters were found\n\n", len(result)))
 	return result
 }
 
@@ -375,7 +408,7 @@ func unique(strSlice []string) []string {
 func saveResult(channel chan string) {
 	defer wg.Done()
 	for v := range channel {
-		for _, i := range unique(findParameter(v)) {
+		for _, i := range unique(startDiscovery(v)) {
 			if len(i) <= maxLength {
 				file, err := os.OpenFile(outputFile, os.O_APPEND|os.O_WRONLY, 0666)
 				checkError(err)
@@ -442,11 +475,32 @@ func clearUrls(links []string) []string {
 	return result
 }
 
+func readDir(directory string) []string {
+	if _, err := os.Stat(directory); os.IsNotExist(err) {
+		gologger.Fatal().Msg("Not Exist")
+	}
+
+	var result []string
+	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			dat, _ := os.ReadFile(path)
+			result = append(result, info.Name()+"===="+string(dat))
+		}
+		return err
+	})
+	checkError(err)
+
+	return result
+}
+
 func finalMessage() {
 	dat, _ := os.ReadFile(outputFile)
+	uniqData := strings.Join(unique(strings.Split(string(dat), "\n")), "\n")
+	_ = os.WriteFile(outputFile, []byte(uniqData), 0644)
+
 	if len(string(dat)) != 0 {
-		gologger.Info().Msg(fmt.Sprintf("Parameter wordlist %ssuccessfully%s generated and saved to %s%s%s.",
-			colorGreen, colorReset, colorBlue, outputFile, colorReset))
+		gologger.Info().Msg(fmt.Sprintf("Parameter wordlist %ssuccessfully%s generated and saved to %s%s%s [%d unique parameters]",
+			colorGreen, colorReset, colorBlue, outputFile, colorReset, len(strings.Split(uniqData, "\n"))))
 	} else {
 		_ = os.Remove(outputFile)
 		gologger.Error().Msg("I'm sorry, but I couldn't find any parameters :(")
@@ -456,5 +510,6 @@ func finalMessage() {
 func checkError(e error) {
 	if e != nil {
 		fmt.Println(e.Error())
+		gologger.Fatal().Msg("x")
 	}
 }
