@@ -32,6 +32,7 @@ Usage:
 Flags:
 INPUT:
    -u, -url string  Input [Filename | URL]
+   -f, -files string  Stored requests/responses files directory path (offline)
 
 RATE-LIMIT:
    -t, -thread int  Number Of Thread [Number] (default 1)
