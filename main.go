@@ -38,7 +38,7 @@ const (
 	colorGreen  = "\033[32m"
 	colorYellow = "\033[33m"
 	colorBlue   = "\033[34m"
-	VERSION     = "1.0.6"
+	VERSION     = "1.0.7"
 )
 
 func (i *arrayFlags) Set(value string) error {
@@ -299,8 +299,8 @@ func startDiscovery(myInput string) []string {
 	} else if len(myInput) != 0 {
 		cnHeader := "NOT-FOUND"
 		link := ""
-		fileName := strings.Split(myInput, "====")[0]
-		myInput = strings.Split(myInput, "====")[1]
+		fileName := strings.Split(myInput, "{==MY=FILE=NAME==}")[0]
+		myInput = strings.Split(myInput, "{==MY=FILE=NAME==}")[1]
 		reg, _ := regexp.Compile(`[cC][oO][nN][tT][eE][nN][tT]-[tT][yY][pP][eE]\s*:\s*([\w\-/]+)`)
 
 		if IsUrl(strings.Split(myInput, "\n")[0]) {
@@ -484,7 +484,7 @@ func readDir(directory string) []string {
 	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			dat, _ := os.ReadFile(path)
-			result = append(result, info.Name()+"===="+string(dat))
+			result = append(result, info.Name()+"{==MY=FILE=NAME==}"+string(dat))
 		}
 		return err
 	})
