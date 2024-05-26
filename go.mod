@@ -2,7 +2,7 @@ module github.com/ImAyrix/fallparams
 
 go 1.21
 
-toolchain go1.21.6
+//toolchain go1.21.6
 
 require (
 	github.com/chromedp/cdproto v0.0.0-20240519224452-66462be74baa
