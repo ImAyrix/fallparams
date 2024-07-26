@@ -16,7 +16,7 @@ var (
 )
 
 const (
-	VERSION = "1.0.8"
+	VERSION = "1.0.9"
 )
 
 func ReadFlags() *goflags.FlagSet {
@@ -39,6 +39,8 @@ func ReadFlags() *goflags.FlagSet {
 		flagSet.DurationVarP(&myOptions.CrawlDuration, "crawl-duration", "ct", 0, "maximum duration to crawl the target"),
 		flagSet.BoolVarP(&myOptions.Headless, "headless", "hl", false, "Discover parameters with headless browser"),
 		flagSet.VarP(&myOptions.CustomHeaders, "header", "H", "Header `\"Name: Value\"`, separated by colon. Multiple -H flags are accepted."),
+		flagSet.StringVarP(&myOptions.RequestHttpMethod, "method", "X", "GET", "HTTP method to use"),
+		flagSet.StringVarP(&myOptions.RequestBody, "body", "b", "", "POST data"),
 	)
 
 	createGroup(flagSet, "output", "Output",

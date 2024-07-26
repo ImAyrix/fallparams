@@ -49,6 +49,8 @@ CONFIGURATIONS:
    -ct, -crawl-duration value  maximum duration to crawl the target
    -hl, -headless              Discover parameters with headless browser
    -H, -header "Name: Value"   Header "Name: Value", separated by colon. Multiple -H flags are accepted.
+   -X, -method string          HTTP method to use (default "GET")
+   -b, -body string            POST data
 
 OUTPUT:
    -o, -output string    File to write output to (default "parameters.txt")
@@ -79,6 +81,12 @@ fallparams -u "/path/to/file.txt"
 The URLs you provide might require a specific header to open or may return a different response based on the header. For example, the user information change section on most sites requires an authentication cookie. Using the following method, you can set as many headers as needed for sending the requests.
 ```bash
 fallparams -u "https://target.tld/profile/edit" -H "Cookie: auth=token" -H "Role: Admin"
+```
+
+### POST data
+If your target responds differently when a POST request with a specific value is sent, you can execute the fallparams command using the following method:
+```bash
+fallparams -u "https://target.tld/path" -X POST -b "param=value" -H "Content-Type: application/x-www-form-urlencoded"
 ```
 
 ### Headless

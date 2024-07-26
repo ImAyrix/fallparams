@@ -20,4 +20,6 @@ type Options struct {
 	MaxLength          int
 	MinLength          int
 	DisableUpdateCheck bool
+	RequestHttpMethod  string
+	RequestBody        string
 }

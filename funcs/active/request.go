@@ -1,6 +1,7 @@
 package active
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"github.com/ImAyrix/fallparams/funcs/opt"
@@ -18,7 +19,7 @@ func SendRequest(link string, myOptions *opt.Options) (*http.Response, string) {
 		Timeout: 60 * time.Second,
 	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	req, err := http.NewRequest("GET", link, nil)
+	req, err := http.NewRequest(strings.ToUpper(myOptions.RequestHttpMethod), link, bytes.NewBuffer([]byte(myOptions.RequestBody)))
 	if err != nil {
 		return nil, "temp"
 	}
@@ -28,6 +29,7 @@ func SendRequest(link string, myOptions *opt.Options) (*http.Response, string) {
 	req.Header.Set("Sec-Fetch-Mode", "navigate")
 	req.Header.Set("Sec-Fetch-Site", "none")
 	req.Header.Set("Sec-Fetch-User", "?1")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/114.0")
 	req.Header.Set("Referer", link)
 
 	if len(myOptions.CustomHeaders) != 0 {

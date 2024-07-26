@@ -22,6 +22,10 @@ func Clear(links []string) []string {
 			}
 		}
 
+		if !IsUrl(link) {
+			isGoodUrl = false
+		}
+
 		if isGoodUrl {
 			result = append(result, link)
 		}
