@@ -3,11 +3,12 @@ package validate
 import (
 	"github.com/ImAyrix/fallparams/funcs/opt"
 	errorutil "github.com/projectdiscovery/utils/errors"
+	"net/url"
 	"strings"
 )
 
 func Options(options *opt.Options) error {
-	if options.InputUrls == "" && options.InputDIR == "" {
+	if options.InputUrls == "" && options.InputDIR == "" && options.InputHttpRequest == "" {
 		return errorutil.New("input is empty!")
 	}
 	if options.MaxLength <= 0 {
@@ -23,16 +24,22 @@ func Options(options *opt.Options) error {
 		return errorutil.New("crawl mode (-crawl) and offline mode (-directory) cannot be used together")
 	}
 	if strings.ToUpper(options.RequestHttpMethod) != "GET" && options.CrawlMode {
-		return errorutil.New("crawl mode (-crawl) and custom request method (-method) cannot be used together")
+		return errorutil.New("crawl mode (-crawl) works only with the GET HTTP request method")
 	}
 	if strings.ToUpper(options.RequestHttpMethod) != "GET" && options.Headless {
-		return errorutil.New("headless mode (-headless) and custom request method (-method) cannot be used together")
+		return errorutil.New("headless mode (-headless) works only with the GET HTTP request method")
 	}
 	if options.RequestBody != "" && options.CrawlMode {
-		return errorutil.New("crawl mode (-crawl) and custom request body (-body) cannot be used together")
+		return errorutil.New("crawl mode (-crawl) works only with the GET HTTP request method")
 	}
 	if strings.ToUpper(options.RequestHttpMethod) != "GET" && options.Headless {
-		return errorutil.New("headless mode (-headless) and custom request body (-body) cannot be used together")
+		return errorutil.New("headless mode (-headless) works only with the GET HTTP request method")
+	}
+	if options.ProxyUrl != "" {
+		u, err := url.Parse(options.ProxyUrl)
+		if err != nil || u.Scheme == "" || u.Host == "" {
+			return errorutil.New("the proxy URL (-proxy) is invalid.")
+		}
 	}
 	if options.MaxLength <= 0 {
 		return errorutil.New("the maximum length (-max-length) must be greater than 0.")

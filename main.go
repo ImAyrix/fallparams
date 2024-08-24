@@ -16,7 +16,7 @@ var (
 )
 
 const (
-	VERSION = "1.0.10"
+	VERSION = "1.0.11"
 )
 
 func ReadFlags() *goflags.FlagSet {
@@ -26,6 +26,7 @@ func ReadFlags() *goflags.FlagSet {
 	createGroup(flagSet, "input", "Input",
 		flagSet.StringVarP(&myOptions.InputUrls, "url", "u", "", "Input [Filename | URL]"),
 		flagSet.StringVarP(&myOptions.InputDIR, "directory", "dir", "", "Stored requests/responses files directory path (offline)"),
+		flagSet.StringVarP(&myOptions.InputHttpRequest, "request", "r", "", "File containing the raw http request"),
 	)
 
 	createGroup(flagSet, "rate-limit", "Rate-Limit",
@@ -41,12 +42,14 @@ func ReadFlags() *goflags.FlagSet {
 		flagSet.VarP(&myOptions.CustomHeaders, "header", "H", "Header `\"Name: Value\"`, separated by colon. Multiple -H flags are accepted."),
 		flagSet.StringVarP(&myOptions.RequestHttpMethod, "method", "X", "GET", "HTTP method to use"),
 		flagSet.StringVarP(&myOptions.RequestBody, "body", "b", "", "POST data"),
+		flagSet.StringVarP(&myOptions.ProxyUrl, "proxy", "x", "", "Proxy URL (SOCKS5 or HTTP). For example: http://127.0.0.1:8080 or socks5://127.0.0.1:8080"),
 	)
 
 	createGroup(flagSet, "output", "Output",
 		flagSet.StringVarP(&myOptions.OutputFile, "output", "o", "parameters.txt", "File to write output to"),
 		flagSet.IntVarP(&myOptions.MaxLength, "max-length", "xl", 30, "Maximum length of words"),
 		flagSet.IntVarP(&myOptions.MinLength, "min-length", "nl", 0, "Minimum length of words"),
+		flagSet.BoolVar(&myOptions.SilentMode, "silent", false, "Disables the banner and prints output to the command line."),
 	)
 
 	createGroup(flagSet, "update", "Update",
@@ -60,6 +63,9 @@ func ReadFlags() *goflags.FlagSet {
 
 func main() {
 	_ = ReadFlags()
+	if myOptions.InputHttpRequest != "" {
+		utils.ParseHttpRequest(myOptions)
+	}
 	err := validate.Options(myOptions)
 	utils.CheckError(err)
 

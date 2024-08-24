@@ -16,6 +16,8 @@ func GetInput(options *opt.Options) chan string {
 		allUrls = Unique(validate.Clear(allUrls))
 	} else if options.InputDIR != "" {
 		allUrls = DIR(options.InputDIR)
+	} else if options.InputHttpRequest != "" {
+		allUrls = ParseHttpRequest(options)
 	}
 
 	channel := make(chan string, len(allUrls))

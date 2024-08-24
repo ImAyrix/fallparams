@@ -22,4 +22,7 @@ type Options struct {
 	DisableUpdateCheck bool
 	RequestHttpMethod  string
 	RequestBody        string
+	InputHttpRequest   string
+	ProxyUrl           string
+	SilentMode         bool
 }

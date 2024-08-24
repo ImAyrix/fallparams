@@ -5,8 +5,8 @@ go 1.21
 toolchain go1.21.6
 
 require (
-	github.com/chromedp/cdproto v0.0.0-20240519224452-66462be74baa
-	github.com/chromedp/chromedp v0.9.5
+	github.com/chromedp/cdproto v0.0.0-20240810084448-b931b754e476
+	github.com/chromedp/chromedp v0.10.0
 	github.com/projectdiscovery/goflags v0.1.53
 	github.com/projectdiscovery/gologger v1.1.12
 	github.com/projectdiscovery/katana v1.1.0
@@ -107,7 +107,7 @@ require (
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect
 	gopkg.in/djherbis/times.v1 v1.3.0 // indirect

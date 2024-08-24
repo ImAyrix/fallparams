@@ -38,6 +38,7 @@ Flags:
 INPUT:
    -u, -url string          Input [Filename | URL]
    -dir, -directory string  Stored requests/responses files directory path (offline)
+   -r, -request string      File containing the raw http request
 
 RATE-LIMIT:
    -t, -thread int  Number of Threads [Number] (default 1)
@@ -51,11 +52,13 @@ CONFIGURATIONS:
    -H, -header "Name: Value"   Header "Name: Value", separated by colon. Multiple -H flags are accepted.
    -X, -method string          HTTP method to use (default "GET")
    -b, -body string            POST data
+   -x, -proxy string           Proxy URL (SOCKS5 or HTTP). For example: http://127.0.0.1:8080 or socks5://127.0.0.1:8080
 
 OUTPUT:
    -o, -output string    File to write output to (default "parameters.txt")
    -xl, -max-length int  Maximum length of words (default 30)
    -nl, -min-length int  Minimum length of words
+   -silent               Disables the banner and prints output to the command line.
 
 UPDATE:
    -duc, -disable-update-check  Disable automatic fallparams update check
@@ -76,6 +79,10 @@ If you have many URLs for which you want to create a parameter wordlist, save al
 ```bash
 fallparams -u "/path/to/file.txt"
 ```
+You can also save the entire HTTP packet to a file and use it as an input for the tool, ensuring that it sends the exact same headers, cookies, and other details in the requests.
+```bash
+fallparams -r "request.txt"
+```
 
 ### Custom Header
 The URLs you provide might require a specific header to open or may return a different response based on the header. For example, the user information change section on most sites requires an authentication cookie. Using the following method, you can set as many headers as needed for sending the requests.
@@ -83,7 +90,7 @@ The URLs you provide might require a specific header to open or may return a dif
 fallparams -u "https://target.tld/profile/edit" -H "Cookie: auth=token" -H "Role: Admin"
 ```
 
-### POST data
+### Post Data
 If your target responds differently when a POST request with a specific value is sent, you can execute the fallparams command using the following method:
 ```bash
 fallparams -u "https://target.tld/path" -X POST -b "param=value" -H "Content-Type: application/x-www-form-urlencoded"

@@ -57,6 +57,11 @@ func SimpleCrawl(link string, myOptions *opt.Options) []string {
 			}
 		},
 	}
+
+	if myOptions.ProxyUrl != "" {
+		options.Proxy = myOptions.ProxyUrl
+	}
+
 	crawlerOptions, err := types.NewCrawlerOptions(options)
 	if err != nil {
 		gologger.Fatal().Msg(err.Error())
