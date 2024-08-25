@@ -7,7 +7,6 @@ import (
 	"github.com/ImAyrix/fallparams/funcs/parameters"
 	"github.com/ImAyrix/fallparams/funcs/utils"
 	"github.com/ImAyrix/fallparams/funcs/validate"
-	"github.com/projectdiscovery/gologger"
 	"net/http"
 	"os"
 	"regexp"
@@ -59,7 +58,7 @@ func Start(channel chan string, myOptions *opt.Options, wg *sync.WaitGroup) {
 		for _, i := range utils.Unique(Do(v, myOptions)) {
 			if len(i) <= myOptions.MaxLength && len(i) >= myOptions.MinLength {
 				if myOptions.SilentMode {
-					gologger.Print().Msg(i)
+					fmt.Println(i)
 				}
 				if myOptions.OutputFile != "parameters.txt" || !myOptions.SilentMode {
 					file, err := os.OpenFile(myOptions.OutputFile, os.O_APPEND|os.O_WRONLY, 0666)
